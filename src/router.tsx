@@ -6,6 +6,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { NextStepProvider } from 'nextstepjs'
 import { OnboardingTourProvider } from '@/components/onboarding/OnboardingTourProvider'
 
+const LandingPage            = lazy(() => import('@/pages/LandingPage'))
 const NotFoundPage           = lazy(() => import('@/pages/NotFoundPage'))
 const LoginPage              = lazy(() => import('@/pages/auth/LoginPage'))
 const RegisterPage           = lazy(() => import('@/pages/auth/RegisterPage'))
@@ -60,7 +61,7 @@ function AppRoutes() {
     <OnboardingTourProvider>
       <Suspense fallback={<PageSpinner />}>
         <Routes>
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/" element={<LandingPage />} />
 
 {/* Públicas */}
           <Route path="/login" element={<LoginPage />} />
