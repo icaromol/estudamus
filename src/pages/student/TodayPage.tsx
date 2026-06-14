@@ -27,7 +27,6 @@ import {
   MdSwapHoriz,
   MdCallSplit,
   MdTimer,
-  MdSettings,
   MdBalance,
   MdEditCalendar,
   MdAdd,
@@ -288,23 +287,39 @@ export default function TodayPage() {
   const [showChangeTime, setShowChangeTime] = useState(false);
   const [changeTimeMinutes, setChangeTimeMinutes] = useState(60);
   const [showRebalanceConfirm, setShowRebalanceConfirm] = useState(false);
-  const [ungroupConfirmItem, setUngroupConfirmItem] = useState<PlanItem | null>(null);
+  const [ungroupConfirmItem, setUngroupConfirmItem] = useState<PlanItem | null>(
+    null,
+  );
 
-  // Menu de configurações do banner
-  const [showBannerMenu, setShowBannerMenu] = useState(false);
 
   // Modal Editar Plano (Kanban semanal)
   const [showEditPlanModal, setShowEditPlanModal] = useState(false);
-  type WeekKanbanItem = { id: string; title: string; subtitle: string; durationMinutes: number; isDone: boolean; dayOfWeek: number; planId: string; isMaintenance: boolean };
+  type WeekKanbanItem = {
+    id: string;
+    title: string;
+    subtitle: string;
+    durationMinutes: number;
+    isDone: boolean;
+    dayOfWeek: number;
+    planId: string;
+    isMaintenance: boolean;
+  };
   const [weekKanbanItems, setWeekKanbanItems] = useState<WeekKanbanItem[]>([]);
   const [kanbanLoading, setKanbanLoading] = useState(false);
-  const [editingKanbanItem, setEditingKanbanItem] = useState<WeekKanbanItem | null>(null);
+  const [editingKanbanItem, setEditingKanbanItem] =
+    useState<WeekKanbanItem | null>(null);
   const [editingKanbanDuration, setEditingKanbanDuration] = useState(25);
 
   // Modal Adicionar Tarefa
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
-  const [addTaskTab, setAddTaskTab] = useState<"pieces" | "exercises">("pieces");
-  const [addTaskSelected, setAddTaskSelected] = useState<{ id: string; title: string; type: "piece" | "exercise" } | null>(null);
+  const [addTaskTab, setAddTaskTab] = useState<"pieces" | "exercises">(
+    "pieces",
+  );
+  const [addTaskSelected, setAddTaskSelected] = useState<{
+    id: string;
+    title: string;
+    type: "piece" | "exercise";
+  } | null>(null);
   const [addTaskDuration, setAddTaskDuration] = useState(25);
   const [addTaskMode, setAddTaskMode] = useState<"sum" | "redistribute">("sum");
 
@@ -488,15 +503,23 @@ export default function TodayPage() {
 
   async function handleChangeTimeConfirm() {
     const undone = items.filter((i) => i.day_of_week === viewDay && !i.is_done);
-    if (undone.length === 0) { setShowChangeTime(false); return; }
+    if (undone.length === 0) {
+      setShowChangeTime(false);
+      return;
+    }
     const perTask = Math.max(5, Math.floor(changeTimeMinutes / undone.length));
     const updated = items.map((i) =>
-      undone.find((u) => u.id === i.id) ? { ...i, duration_minutes: perTask } : i,
+      undone.find((u) => u.id === i.id)
+        ? { ...i, duration_minutes: perTask }
+        : i,
     );
     setItems(updated);
     await Promise.all(
       undone.map((i) =>
-        supabase.from("plan_items").update({ duration_minutes: perTask }).eq("id", i.id),
+        supabase
+          .from("plan_items")
+          .update({ duration_minutes: perTask })
+          .eq("id", i.id),
       ),
     );
     setShowChangeTime(false);
@@ -1260,16 +1283,24 @@ export default function TodayPage() {
       .eq("student_id", studentId)
       .eq("week_start", weekStart)
       .maybeSingle();
-    if (!plan) { setWeekKanbanItems([]); setKanbanLoading(false); return; }
+    if (!plan) {
+      setWeekKanbanItems([]);
+      setKanbanLoading(false);
+      return;
+    }
 
     const { data: rows } = await supabase
       .from("plan_items")
-      .select(`id, plan_id, day_of_week, piece_id, exercise_id, program_id, duration_minutes, is_done, is_maintenance,
-        piece:pieces(title, composer), exercise:exercises(title, category), programa:programas(title, type)`)
+      .select(
+        `id, plan_id, day_of_week, piece_id, exercise_id, program_id, duration_minutes, is_done, is_maintenance,
+        piece:pieces(title, composer), exercise:exercises(title, category), programa:programas(title, type)`,
+      )
       .eq("plan_id", plan.id)
       .order("position");
 
-    const mapped: WeekKanbanItem[] = ((rows ?? []) as unknown as PlanItem[]).map((i) => {
+    const mapped: WeekKanbanItem[] = (
+      (rows ?? []) as unknown as PlanItem[]
+    ).map((i) => {
       const d = itemDisplay(i);
       return {
         id: i.id,
@@ -1286,11 +1317,25 @@ export default function TodayPage() {
     setKanbanLoading(false);
   }
 
-  async function handleKanbanUpdateDuration(item: WeekKanbanItem, newDuration: number) {
-    await supabase.from("plan_items").update({ duration_minutes: newDuration }).eq("id", item.id);
-    setWeekKanbanItems((prev) => prev.map((k) => k.id === item.id ? { ...k, durationMinutes: newDuration } : k));
+  async function handleKanbanUpdateDuration(
+    item: WeekKanbanItem,
+    newDuration: number,
+  ) {
+    await supabase
+      .from("plan_items")
+      .update({ duration_minutes: newDuration })
+      .eq("id", item.id);
+    setWeekKanbanItems((prev) =>
+      prev.map((k) =>
+        k.id === item.id ? { ...k, durationMinutes: newDuration } : k,
+      ),
+    );
     if (item.dayOfWeek === viewDay) {
-      setItems((prev) => prev.map((i) => i.id === item.id ? { ...i, duration_minutes: newDuration } : i));
+      setItems((prev) =>
+        prev.map((i) =>
+          i.id === item.id ? { ...i, duration_minutes: newDuration } : i,
+        ),
+      );
     }
     toast.success("Tempo atualizado.");
   }
@@ -1313,14 +1358,18 @@ export default function TodayPage() {
       .eq("student_id", studentId)
       .eq("week_start", weekStart)
       .maybeSingle();
-    if (!plan) { toast.error("Sem planejamento esta semana."); return; }
+    if (!plan) {
+      toast.error("Sem planejamento esta semana.");
+      return;
+    }
 
     const maxPos = items.reduce((m, i) => Math.max(m, i.position ?? 0), 0);
     const newRow = {
       plan_id: plan.id,
       day_of_week: viewDay,
       piece_id: addTaskSelected.type === "piece" ? addTaskSelected.id : null,
-      exercise_id: addTaskSelected.type === "exercise" ? addTaskSelected.id : null,
+      exercise_id:
+        addTaskSelected.type === "exercise" ? addTaskSelected.id : null,
       duration_minutes: addTaskDuration,
       position: maxPos + 1,
       is_done: false,
@@ -1333,18 +1382,38 @@ export default function TodayPage() {
         piece:pieces(title, composer), exercise:exercises(title, category), programa:programas(title, type)`);
 
     if (addTaskMode === "redistribute" && inserted && inserted.length > 0) {
-      const newItem = (inserted[0] as unknown as PlanItem);
-      const undone = items.filter((i) => i.day_of_week === viewDay && !i.is_done);
+      const newItem = inserted[0] as unknown as PlanItem;
+      const undone = items.filter(
+        (i) => i.day_of_week === viewDay && !i.is_done,
+      );
       const freed = addTaskDuration;
       if (undone.length > 0 && freed > 0) {
         const reduction = Math.round(freed / undone.length);
         await Promise.all(
           undone.map((i) =>
-            supabase.from("plan_items").update({ duration_minutes: Math.max(5, (i.duration_minutes ?? 0) - reduction) }).eq("id", i.id)
-          )
+            supabase
+              .from("plan_items")
+              .update({
+                duration_minutes: Math.max(
+                  5,
+                  (i.duration_minutes ?? 0) - reduction,
+                ),
+              })
+              .eq("id", i.id),
+          ),
         );
         setItems((prev) => [
-          ...prev.map((i) => undone.find((u) => u.id === i.id) ? { ...i, duration_minutes: Math.max(5, (i.duration_minutes ?? 0) - reduction) } : i),
+          ...prev.map((i) =>
+            undone.find((u) => u.id === i.id)
+              ? {
+                  ...i,
+                  duration_minutes: Math.max(
+                    5,
+                    (i.duration_minutes ?? 0) - reduction,
+                  ),
+                }
+              : i,
+          ),
           newItem,
         ]);
       } else {
@@ -1380,7 +1449,6 @@ export default function TodayPage() {
     (s, i) => s + (i.duration_minutes ?? 0),
     0,
   );
-
 
   if (loading) {
     return (
@@ -1861,39 +1929,12 @@ export default function TodayPage() {
                         (item.exercise_id &&
                           item.exercise_id === focusWeekExerciseId);
                       const menuOpen = openMenuItemId === item.id;
+                      const isFirstPending = renderUnits.findIndex(
+                        (u) => u.kind === "single" && !u.item.is_done
+                      ) === renderUnits.indexOf(unit);
                       return (
                         <div className="flex flex-row items-center gap-1 pr-4 pl-1 shrink-0">
-                          {/* On hover: target (quando não é foco) + menu três pontos */}
-                          {!(isFocusDay || isFocusWeek) && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleActionClick("focus", item);
-                              }}
-                              className="w-7 h-7 flex items-center justify-center transition opacity-0 group-hover:opacity-100 hover:opacity-70 text-gray-400"
-                            >
-                              <MdGpsFixed size={18} />
-                            </button>
-                          )}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (menuOpen) {
-                                setOpenMenuItemId(null);
-                                setMenuAnchor(null);
-                              } else {
-                                const r = (
-                                  e.currentTarget as HTMLElement
-                                ).getBoundingClientRect();
-                                setMenuAnchor({ x: r.right, y: r.bottom });
-                                setOpenMenuItemId(item.id);
-                              }
-                            }}
-                            className={`w-7 h-7 flex items-center justify-center text-gray-400 transition hover:text-[#ff4c3e] ${menuOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
-                          >
-                            <MdMoreVert size={18} />
-                          </button>
-                          {/* Sempre visíveis: target se foco ativo + indicadores de estado */}
+                          {/* Target — só visível quando foco ativo (dia ou semana) */}
                           {(isFocusDay || isFocusWeek) && (
                             <button
                               onClick={(e) => {
@@ -1908,6 +1949,26 @@ export default function TodayPage() {
                               <MdGpsFixed size={18} />
                             </button>
                           )}
+                          {/* Menu três pontos — sempre visível */}
+                          <button
+                            id={isFirstPending ? "onboarding-today-task-menu" : undefined}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (menuOpen) {
+                                setOpenMenuItemId(null);
+                                setMenuAnchor(null);
+                              } else {
+                                const r = (
+                                  e.currentTarget as HTMLElement
+                                ).getBoundingClientRect();
+                                setMenuAnchor({ x: r.right, y: r.bottom });
+                                setOpenMenuItemId(item.id);
+                              }
+                            }}
+                            className={`w-7 h-7 flex items-center justify-center text-gray-400 transition hover:text-[#ff4c3e] ${menuOpen ? "text-[#ff4c3e]" : ""}`}
+                          >
+                            <MdMoreVert size={18} />
+                          </button>
                           {item.is_maintenance && (
                             <span
                               className="shrink-0 cursor-default flex items-center justify-center w-5"
@@ -1986,14 +2047,26 @@ export default function TodayPage() {
 
       {/* Banner de início rápido */}
       {isToday && (
-        <div className="mt-8 bg-[#ff4c3e] rounded-2xl flex items-center gap-3 p-3">
+        <div className="mt-8 bg-[#ff4c3e] rounded-2xl flex items-center gap-2 p-3">
+          {/* Esquerda: configurar tempo + rebalancear */}
           <button
+            id="onboarding-banner-timer"
             onClick={() => { setChangeTimeMinutes(totalMinutes || 60); setShowChangeTime(true); }}
             className="group rounded-xl bg-[#f5f5f5] flex items-center justify-center shrink-0 hover:bg-[#1E3A5F] transition"
-            style={{ width: 56, height: 56 }}
+            style={{ width: 48, height: 48 }}
           >
-            <MdTimer size={24} className="text-[#ff4c3e] group-hover:text-white transition" />
+            <MdTimer size={22} className="text-[#ff4c3e] group-hover:text-white transition" />
           </button>
+          <button
+            id="onboarding-banner-rebalance"
+            onClick={() => setShowRebalanceConfirm(true)}
+            className="group rounded-xl bg-[#f5f5f5] flex items-center justify-center shrink-0 hover:bg-[#1E3A5F] transition"
+            style={{ width: 48, height: 48 }}
+          >
+            <MdBalance size={22} className="text-[#ff4c3e] group-hover:text-white transition" />
+          </button>
+
+          {/* Centro: início rápido */}
           <button
             onClick={() =>
               navigate("/aluno/pomodoro", {
@@ -2007,13 +2080,13 @@ export default function TodayPage() {
               })
             }
             id="onboarding-today-start-btn"
-            className="flex-1 rounded-xl px-4 py-3 flex items-center justify-center gap-3 hover:bg-[#b2f0fb]/20 transition cursor-pointer"
+            className="flex-1 rounded-xl px-3 py-2.5 flex items-center justify-center gap-2.5 hover:bg-[#b2f0fb]/20 transition cursor-pointer"
           >
-            <div className="w-10 h-10 rounded-full bg-[#b2f0fb]/20 flex items-center justify-center shrink-0">
-              <MdPlayArrow size={24} className="text-white ml-0.5" />
+            <div className="w-9 h-9 rounded-full bg-[#b2f0fb]/20 flex items-center justify-center shrink-0">
+              <MdPlayArrow size={22} className="text-white ml-0.5" />
             </div>
             <div className="text-left">
-              <p className="text-base font-bold text-white">Início rápido</p>
+              <p className="text-sm font-bold text-white">Início rápido</p>
               <p className="text-xs text-white/60 mt-0.5">
                 {pomodoroConfig
                   ? `${pomodoroConfig.work} : ${pomodoroConfig.break} min`
@@ -2021,47 +2094,24 @@ export default function TodayPage() {
               </p>
             </div>
           </button>
-          <div className="relative shrink-0">
-            <button
-              onClick={() => setShowBannerMenu((v) => !v)}
-              className="group rounded-xl bg-[#f5f5f5] flex items-center justify-center hover:bg-[#1E3A5F] transition"
-              style={{ width: 56, height: 56 }}
-            >
-              <MdSettings size={24} className="text-[#ff4c3e] group-hover:text-white transition" />
-            </button>
-            {showBannerMenu && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setShowBannerMenu(false)} />
-                <div className="absolute right-0 bottom-full mb-2 z-50 bg-white rounded-2xl shadow-xl border border-gray-100 py-1 w-52">
-                  <button
-                    onClick={() => { setShowBannerMenu(false); setShowRebalanceConfirm(true); }}
-                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-gray-700 hover:bg-[#f5f5f5] transition"
-                  >
-                    <MdBalance size={18} className="text-[#ff4c3e] shrink-0" />
-                    Rebalancear dia
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowBannerMenu(false);
-                      setShowEditPlanModal(true);
-                      fetchWeekKanban();
-                    }}
-                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-gray-700 hover:bg-[#f5f5f5] transition"
-                  >
-                    <MdEditCalendar size={18} className="text-[#ff4c3e] shrink-0" />
-                    Editar meu plano
-                  </button>
-                  <button
-                    onClick={() => { setShowBannerMenu(false); setShowAddTaskModal(true); }}
-                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-gray-700 hover:bg-[#f5f5f5] transition"
-                  >
-                    <MdAdd size={18} className="text-[#ff4c3e] shrink-0" />
-                    Adicionar tarefa
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+
+          {/* Direita: adicionar tarefa + editar plano */}
+          <button
+            id="onboarding-banner-add"
+            onClick={() => setShowAddTaskModal(true)}
+            className="group rounded-xl bg-[#f5f5f5] flex items-center justify-center shrink-0 hover:bg-[#1E3A5F] transition"
+            style={{ width: 48, height: 48 }}
+          >
+            <MdAdd size={22} className="text-[#ff4c3e] group-hover:text-white transition" />
+          </button>
+          <button
+            id="onboarding-banner-edit-plan"
+            onClick={() => { setShowEditPlanModal(true); fetchWeekKanban(); }}
+            className="group rounded-xl bg-[#f5f5f5] flex items-center justify-center shrink-0 hover:bg-[#1E3A5F] transition"
+            style={{ width: 48, height: 48 }}
+          >
+            <MdEditCalendar size={22} className="text-[#ff4c3e] group-hover:text-white transition" />
+          </button>
         </div>
       )}
 
@@ -2149,6 +2199,18 @@ export default function TodayPage() {
                 }}
                 onClick={(e) => e.stopPropagation()}
               >
+                <button
+                  onClick={() => {
+                    setOpenMenuItemId(null);
+                    setMenuAnchor(null);
+                    handleActionClick("focus", menuItem);
+                  }}
+                  className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-[#f5f5f5] transition"
+                >
+                  <MdGpsFixed size={16} className="text-[#292929]" />
+                  Modo foco
+                </button>
+                <hr className="border-gray-100 my-1" />
                 <button
                   onClick={() => {
                     setOpenMenuItemId(null);
@@ -2425,7 +2487,11 @@ export default function TodayPage() {
             </p>
             <div className="bg-[#eff7fb] border border-[#b2f0fb] rounded-xl px-4 py-3 mb-6">
               <p className="text-xs text-[#153b50] leading-relaxed">
-                A conclusão rápida <span className="font-semibold">não conta XP, não dá medalhas e não completa missões do dia.</span> Para ganhar recompensas, conclua pelo Pomodoro.
+                A conclusão rápida{" "}
+                <span className="font-semibold">
+                  não conta XP, não dá medalhas e não completa missões do dia.
+                </span>{" "}
+                Para ganhar recompensas, conclua pelo Pomodoro.
               </p>
             </div>
             <button
@@ -2482,9 +2548,12 @@ export default function TodayPage() {
       {ungroupConfirmItem && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 px-4">
           <div className="bg-white rounded-t-2xl w-full max-w-sm pb-8 pt-5 px-6">
-            <h2 className="text-base font-bold text-[#ff4c3e] mb-1">Desagrupar tarefa</h2>
+            <h2 className="text-base font-bold text-[#ff4c3e] mb-1">
+              Desagrupar tarefa
+            </h2>
             <p className="text-xs text-gray-400 mb-4">
-              A tarefa será dividida em blocos do tamanho do seu pomodoro ({pomodoroConfig?.work ?? 25} min).
+              A tarefa será dividida em blocos do tamanho do seu pomodoro (
+              {pomodoroConfig?.work ?? 25} min).
             </p>
 
             {/* Exemplo visual fixo: 60min → blocos do pomodoro */}
@@ -2493,24 +2562,40 @@ export default function TodayPage() {
               const exampleTotal = 60;
               const exBlocks: number[] = [];
               let rem = exampleTotal;
-              while (rem > 0) { exBlocks.push(Math.min(blockMin, rem)); rem -= blockMin; }
+              while (rem > 0) {
+                exBlocks.push(Math.min(blockMin, rem));
+                rem -= blockMin;
+              }
               return (
                 <div className="flex items-center gap-2 mb-6">
                   <div className="flex-1 bg-[#f5f5f5] rounded-xl p-3">
-                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Antes</p>
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                      Antes
+                    </p>
                     <div className="h-7 rounded-lg bg-[#b2f0fb]/30 flex items-center justify-center">
-                      <span className="text-xs font-semibold text-[#ff4c3e]">{exampleTotal} min</span>
+                      <span className="text-xs font-semibold text-[#ff4c3e]">
+                        {exampleTotal} min
+                      </span>
                     </div>
                   </div>
 
-                  <div className="text-[#b2f0fb] text-lg font-bold shrink-0">→</div>
+                  <div className="text-[#b2f0fb] text-lg font-bold shrink-0">
+                    →
+                  </div>
 
                   <div className="flex-1 bg-[#f5f5f5] rounded-xl p-3">
-                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Depois</p>
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                      Depois
+                    </p>
                     <div className="space-y-1">
                       {exBlocks.map((b, i) => (
-                        <div key={i} className="h-5 rounded-md bg-[#ff4c3e]/50 flex items-center justify-center">
-                          <span className="text-[10px] font-semibold text-white">{b} min</span>
+                        <div
+                          key={i}
+                          className="h-5 rounded-md bg-[#ff4c3e]/50 flex items-center justify-center"
+                        >
+                          <span className="text-[10px] font-semibold text-white">
+                            {b} min
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -2520,8 +2605,21 @@ export default function TodayPage() {
             })()}
 
             <div className="flex gap-3">
-              <button onClick={() => setUngroupConfirmItem(null)} className="flex-1 py-3 rounded-xl border border-gray-200 text-sm text-gray-600 hover:border-[#b2f0fb] transition">Cancelar</button>
-              <button onClick={() => { handleUngroup(ungroupConfirmItem); setUngroupConfirmItem(null); }} className="flex-1 py-3 rounded-xl bg-[#ff4c3e] text-white text-sm font-semibold hover:bg-[#f50c00] transition">Desagrupar</button>
+              <button
+                onClick={() => setUngroupConfirmItem(null)}
+                className="flex-1 py-3 rounded-xl border border-gray-200 text-sm text-gray-600 hover:border-[#b2f0fb] transition"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  handleUngroup(ungroupConfirmItem);
+                  setUngroupConfirmItem(null);
+                }}
+                className="flex-1 py-3 rounded-xl bg-[#ff4c3e] text-white text-sm font-semibold hover:bg-[#f50c00] transition"
+              >
+                Desagrupar
+              </button>
             </div>
           </div>
         </div>
@@ -2531,8 +2629,12 @@ export default function TodayPage() {
       {showChangeTime && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 px-4">
           <div className="bg-white rounded-t-2xl w-full max-w-sm pb-8 pt-5 px-6">
-            <h2 className="text-base font-bold text-[#ff4c3e] mb-1">Tempo disponível hoje</h2>
-            <p className="text-xs text-gray-400 mb-5">As tarefas pendentes serão redistribuídas igualmente.</p>
+            <h2 className="text-base font-bold text-[#ff4c3e] mb-1">
+              Tempo disponível hoje
+            </h2>
+            <p className="text-xs text-gray-400 mb-5">
+              As tarefas pendentes serão redistribuídas igualmente.
+            </p>
             <div className="flex items-center gap-4 mb-6">
               <input
                 type="range"
@@ -2543,11 +2645,23 @@ export default function TodayPage() {
                 onChange={(e) => setChangeTimeMinutes(Number(e.target.value))}
                 className="flex-1 accent-[#ff4c3e]"
               />
-              <span className="text-lg font-bold text-[#ff4c3e] w-16 text-right">{changeTimeMinutes} min</span>
+              <span className="text-lg font-bold text-[#ff4c3e] w-16 text-right">
+                {changeTimeMinutes} min
+              </span>
             </div>
             <div className="flex gap-3">
-              <button onClick={() => setShowChangeTime(false)} className="flex-1 py-3 rounded-xl border border-gray-200 text-sm text-gray-600 hover:border-[#b2f0fb] transition">Cancelar</button>
-              <button onClick={handleChangeTimeConfirm} className="flex-1 py-3 rounded-xl bg-[#ff4c3e] text-white text-sm font-semibold hover:bg-[#f50c00] transition">Aplicar</button>
+              <button
+                onClick={() => setShowChangeTime(false)}
+                className="flex-1 py-3 rounded-xl border border-gray-200 text-sm text-gray-600 hover:border-[#b2f0fb] transition"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleChangeTimeConfirm}
+                className="flex-1 py-3 rounded-xl bg-[#ff4c3e] text-white text-sm font-semibold hover:bg-[#f50c00] transition"
+              >
+                Aplicar
+              </button>
             </div>
           </div>
         </div>
@@ -2557,18 +2671,29 @@ export default function TodayPage() {
       {showRebalanceConfirm && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 px-4">
           <div className="bg-white rounded-t-2xl w-full max-w-sm pb-8 pt-5 px-6">
-            <h2 className="text-base font-bold text-[#ff4c3e] mb-1">Rebalancear dia</h2>
-            <p className="text-xs text-gray-400 mb-4">O tempo restante é dividido igualmente entre as tarefas pendentes.</p>
+            <h2 className="text-base font-bold text-[#ff4c3e] mb-1">
+              Rebalancear dia
+            </h2>
+            <p className="text-xs text-gray-400 mb-4">
+              O tempo restante é dividido igualmente entre as tarefas pendentes.
+            </p>
 
             {/* Exemplo visual antes → depois */}
             <div className="flex items-center gap-2 mb-6">
               {/* Antes */}
               <div className="flex-1 bg-[#f5f5f5] rounded-xl p-3 space-y-1.5">
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Antes</p>
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                  Antes
+                </p>
                 {[20, 35, 10].map((min, i) => (
                   <div key={i} className="flex items-center gap-2">
-                    <div className="h-2 rounded-full bg-[#b2f0fb]/30" style={{ width: `${(min / 35) * 100}%`, minWidth: 8 }} />
-                    <span className="text-[10px] text-gray-400 shrink-0">{min}m</span>
+                    <div
+                      className="h-2 rounded-full bg-[#b2f0fb]/30"
+                      style={{ width: `${(min / 35) * 100}%`, minWidth: 8 }}
+                    />
+                    <span className="text-[10px] text-gray-400 shrink-0">
+                      {min}m
+                    </span>
                   </div>
                 ))}
               </div>
@@ -2578,19 +2703,39 @@ export default function TodayPage() {
 
               {/* Depois */}
               <div className="flex-1 bg-[#f5f5f5] rounded-xl p-3 space-y-1.5">
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Depois</p>
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                  Depois
+                </p>
                 {[22, 22, 21].map((min, i) => (
                   <div key={i} className="flex items-center gap-2">
-                    <div className="h-2 rounded-full bg-[#ff4c3e]/50" style={{ width: `${(min / 35) * 100}%`, minWidth: 8 }} />
-                    <span className="text-[10px] text-gray-400 shrink-0">{min}m</span>
+                    <div
+                      className="h-2 rounded-full bg-[#ff4c3e]/50"
+                      style={{ width: `${(min / 35) * 100}%`, minWidth: 8 }}
+                    />
+                    <span className="text-[10px] text-gray-400 shrink-0">
+                      {min}m
+                    </span>
                   </div>
                 ))}
               </div>
             </div>
 
             <div className="flex gap-3">
-              <button onClick={() => setShowRebalanceConfirm(false)} className="flex-1 py-3 rounded-xl border border-gray-200 text-sm text-gray-600 hover:border-[#b2f0fb] transition">Cancelar</button>
-              <button onClick={() => { setShowRebalanceConfirm(false); handleEqualizeTime(); }} className="flex-1 py-3 rounded-xl bg-[#ff4c3e] text-white text-sm font-semibold hover:bg-[#f50c00] transition">Rebalancear</button>
+              <button
+                onClick={() => setShowRebalanceConfirm(false)}
+                className="flex-1 py-3 rounded-xl border border-gray-200 text-sm text-gray-600 hover:border-[#b2f0fb] transition"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  setShowRebalanceConfirm(false);
+                  handleEqualizeTime();
+                }}
+                className="flex-1 py-3 rounded-xl bg-[#ff4c3e] text-white text-sm font-semibold hover:bg-[#f50c00] transition"
+              >
+                Rebalancear
+              </button>
             </div>
           </div>
         </div>
@@ -2602,8 +2747,16 @@ export default function TodayPage() {
           <div className="flex-1 overflow-y-auto bg-white rounded-t-2xl mt-16 flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100 shrink-0">
-              <p className="text-base font-bold text-gray-800">Editar plano da semana</p>
-              <button onClick={() => { setShowEditPlanModal(false); setEditingKanbanItem(null); }} className="text-gray-400 hover:text-gray-600 transition">
+              <p className="text-base font-bold text-gray-800">
+                Editar plano da semana
+              </p>
+              <button
+                onClick={() => {
+                  setShowEditPlanModal(false);
+                  setEditingKanbanItem(null);
+                }}
+                className="text-gray-400 hover:text-gray-600 transition"
+              >
                 <MdClose size={22} />
               </button>
             </div>
@@ -2612,91 +2765,194 @@ export default function TodayPage() {
               <div className="flex-1 flex items-center justify-center py-12">
                 <div className="w-6 h-6 rounded-full border-2 border-[#ff4c3e] border-t-transparent animate-spin" />
               </div>
-            ) : (() => {
-              const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
-              const DAY_LABELS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
-              return (
-                <div className="flex-1 overflow-x-auto px-4 py-4">
-                  <div className="flex gap-3 min-w-max">
-                    {DAY_ORDER.map((dow, di) => {
-                      const dayItems = weekKanbanItems.filter((k) => k.dayOfWeek === dow);
-                      const totalMin = dayItems.reduce((s, k) => s + k.durationMinutes, 0);
-                      const isCurrentDay = dow === viewDay;
-                      const hasItems = dayItems.length > 0;
-                      const allDone = hasItems && dayItems.every((k) => k.isDone);
-                      return (
-                        <div key={dow} className={`w-64 rounded-2xl border flex flex-col ${isCurrentDay ? "bg-[#fff5f5] border-[#ff4c3e]/30" : "bg-white border-gray-100"}`}>
-                          <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-                            <div>
-                              <p className={`text-sm font-bold ${isCurrentDay ? "text-[#ff4c3e]" : "text-gray-700"}`}>{DAY_LABELS[di]}</p>
-                              {isCurrentDay && <p className="text-[10px] text-[#ff4c3e]/60">hoje</p>}
-                            </div>
-                            {totalMin > 0 && <span className="text-xs font-semibold text-gray-400">{totalMin} min</span>}
-                          </div>
-                          <div className="flex-1 p-3 space-y-2">
-                            {!hasItems && (
-                              <p className="text-xs text-gray-300 text-center py-4">Folga</p>
-                            )}
-                            {hasItems && allDone && (
-                              <div className="flex flex-col items-center gap-1 py-3">
-                                <div className="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center">
-                                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#22c55e" strokeWidth={3}>
-                                    <path d="M5 13l4 4L19 7" />
-                                  </svg>
-                                </div>
-                                <p className="text-[10px] text-green-500 font-semibold">Dia concluído</p>
+            ) : (
+              (() => {
+                const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
+                const DAY_LABELS = [
+                  "Seg",
+                  "Ter",
+                  "Qua",
+                  "Qui",
+                  "Sex",
+                  "Sáb",
+                  "Dom",
+                ];
+                return (
+                  <div className="flex-1 overflow-x-auto px-4 py-4">
+                    <div className="flex gap-3 min-w-max">
+                      {DAY_ORDER.map((dow, di) => {
+                        const dayItems = weekKanbanItems.filter(
+                          (k) => k.dayOfWeek === dow,
+                        );
+                        const totalMin = dayItems.reduce(
+                          (s, k) => s + k.durationMinutes,
+                          0,
+                        );
+                        const isCurrentDay = dow === viewDay;
+                        const hasItems = dayItems.length > 0;
+                        const allDone =
+                          hasItems && dayItems.every((k) => k.isDone);
+                        return (
+                          <div
+                            key={dow}
+                            className={`w-64 rounded-2xl border flex flex-col ${isCurrentDay ? "bg-[#fff5f5] border-[#ff4c3e]/30" : "bg-white border-gray-100"}`}
+                          >
+                            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                              <div>
+                                <p
+                                  className={`text-sm font-bold ${isCurrentDay ? "text-[#ff4c3e]" : "text-gray-700"}`}
+                                >
+                                  {DAY_LABELS[di]}
+                                </p>
+                                {isCurrentDay && (
+                                  <p className="text-[10px] text-[#ff4c3e]/60">
+                                    hoje
+                                  </p>
+                                )}
                               </div>
-                            )}
-                            {dayItems.map((k) => (
-                              <button
-                                key={k.id}
-                                onClick={() => { setEditingKanbanItem(k); setEditingKanbanDuration(k.durationMinutes); }}
-                                className={`w-full text-left rounded-xl p-3 transition group ${k.isDone ? "bg-gray-50 opacity-50" : k.isMaintenance ? "bg-gray-100 hover:bg-gray-200/70" : "bg-[#f5f5f5] hover:bg-gray-200/60"}`}
-                              >
-                                <div className="flex items-start gap-2">
-                                  {k.isDone && (
-                                    <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#22c55e" strokeWidth={3} className="shrink-0 mt-0.5">
+                              {totalMin > 0 && (
+                                <span className="text-xs font-semibold text-gray-400">
+                                  {totalMin} min
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex-1 p-3 space-y-2">
+                              {!hasItems && (
+                                <p className="text-xs text-gray-300 text-center py-4">
+                                  Folga
+                                </p>
+                              )}
+                              {hasItems && allDone && (
+                                <div className="flex flex-col items-center gap-1 py-3">
+                                  <div className="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center">
+                                    <svg
+                                      width="14"
+                                      height="14"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke="#22c55e"
+                                      strokeWidth={3}
+                                    >
                                       <path d="M5 13l4 4L19 7" />
                                     </svg>
-                                  )}
-                                  {!k.isDone && k.isMaintenance && <MdSync size={12} className="shrink-0 mt-0.5 text-gray-400" />}
-                                  <p className={`text-xs font-medium flex-1 leading-snug line-clamp-2 ${k.isDone ? "text-gray-400 line-through" : "text-gray-700"}`}>{k.title}</p>
+                                  </div>
+                                  <p className="text-[10px] text-green-500 font-semibold">
+                                    Dia concluído
+                                  </p>
                                 </div>
-                                {k.subtitle && <p className="text-[10px] text-gray-400 mt-0.5 truncate">{k.subtitle}</p>}
-                                <p className={`text-[10px] font-semibold mt-1 ${k.isDone ? "text-gray-300" : "text-[#ff4c3e]"}`}>{k.durationMinutes} min</p>
-                              </button>
-                            ))}
+                              )}
+                              {dayItems.map((k) => (
+                                <button
+                                  key={k.id}
+                                  onClick={() => {
+                                    setEditingKanbanItem(k);
+                                    setEditingKanbanDuration(k.durationMinutes);
+                                  }}
+                                  className={`w-full text-left rounded-xl p-3 transition group ${k.isDone ? "bg-gray-50 opacity-50" : k.isMaintenance ? "bg-gray-100 hover:bg-gray-200/70" : "bg-[#f5f5f5] hover:bg-gray-200/60"}`}
+                                >
+                                  <div className="flex items-start gap-2">
+                                    {k.isDone && (
+                                      <svg
+                                        width="12"
+                                        height="12"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="#22c55e"
+                                        strokeWidth={3}
+                                        className="shrink-0 mt-0.5"
+                                      >
+                                        <path d="M5 13l4 4L19 7" />
+                                      </svg>
+                                    )}
+                                    {!k.isDone && k.isMaintenance && (
+                                      <MdSync
+                                        size={12}
+                                        className="shrink-0 mt-0.5 text-gray-400"
+                                      />
+                                    )}
+                                    <p
+                                      className={`text-xs font-medium flex-1 leading-snug line-clamp-2 ${k.isDone ? "text-gray-400 line-through" : "text-gray-700"}`}
+                                    >
+                                      {k.title}
+                                    </p>
+                                  </div>
+                                  {k.subtitle && (
+                                    <p className="text-[10px] text-gray-400 mt-0.5 truncate">
+                                      {k.subtitle}
+                                    </p>
+                                  )}
+                                  <p
+                                    className={`text-[10px] font-semibold mt-1 ${k.isDone ? "text-gray-300" : "text-[#ff4c3e]"}`}
+                                  >
+                                    {k.durationMinutes} min
+                                  </p>
+                                </button>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              );
-            })()}
+                );
+              })()
+            )}
           </div>
 
           {/* Edit-task sheet dentro do modal */}
           {editingKanbanItem && (
-            <div className="fixed inset-0 z-[60] bg-black/40 flex items-end" onClick={() => setEditingKanbanItem(null)}>
-              <div className="bg-white rounded-t-2xl px-6 pt-6 pb-8 w-full max-w-lg mx-auto" onClick={(e) => e.stopPropagation()}>
+            <div
+              className="fixed inset-0 z-[60] bg-black/40 flex items-end"
+              onClick={() => setEditingKanbanItem(null)}
+            >
+              <div
+                className="bg-white rounded-t-2xl px-6 pt-6 pb-8 w-full max-w-lg mx-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1 min-w-0 pr-3">
-                    <p className="text-base font-bold text-gray-800 line-clamp-2">{editingKanbanItem.isMaintenance ? `Manutenção · ${editingKanbanItem.title}` : editingKanbanItem.title}</p>
-                    {editingKanbanItem.subtitle && <p className="text-sm text-gray-400 mt-1 truncate">{editingKanbanItem.subtitle}</p>}
+                    <p className="text-base font-bold text-gray-800 line-clamp-2">
+                      {editingKanbanItem.isMaintenance
+                        ? `Manutenção · ${editingKanbanItem.title}`
+                        : editingKanbanItem.title}
+                    </p>
+                    {editingKanbanItem.subtitle && (
+                      <p className="text-sm text-gray-400 mt-1 truncate">
+                        {editingKanbanItem.subtitle}
+                      </p>
+                    )}
                   </div>
-                  <button onClick={() => setEditingKanbanItem(null)} className="text-gray-400"><MdClose size={22} /></button>
+                  <button
+                    onClick={() => setEditingKanbanItem(null)}
+                    className="text-gray-400"
+                  >
+                    <MdClose size={22} />
+                  </button>
                 </div>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mt-6 mb-3">Duração</p>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mt-6 mb-3">
+                  Duração
+                </p>
                 <div className="flex items-center gap-4 mb-8">
                   <input
-                    type="number" min={5} max={180} value={editingKanbanDuration}
-                    onChange={(e) => setEditingKanbanDuration(Number(e.target.value))}
+                    type="number"
+                    min={5}
+                    max={180}
+                    value={editingKanbanDuration}
+                    onChange={(e) =>
+                      setEditingKanbanDuration(Number(e.target.value))
+                    }
                     className="w-20 text-center border border-gray-200 rounded-xl px-2 py-2.5 text-base font-semibold text-gray-800 outline-none focus:border-[#ff4c3e]"
                   />
                   <span className="text-sm text-gray-400">min</span>
-                  <input type="range" min={5} max={180} step={5} value={editingKanbanDuration}
-                    onChange={(e) => setEditingKanbanDuration(Number(e.target.value))}
+                  <input
+                    type="range"
+                    min={5}
+                    max={180}
+                    step={5}
+                    value={editingKanbanDuration}
+                    onChange={(e) =>
+                      setEditingKanbanDuration(Number(e.target.value))
+                    }
                     className="flex-1 accent-[#ff4c3e] h-2"
                   />
                 </div>
@@ -2708,7 +2964,13 @@ export default function TodayPage() {
                     Excluir
                   </button>
                   <button
-                    onClick={() => { handleKanbanUpdateDuration(editingKanbanItem, editingKanbanDuration); setEditingKanbanItem(null); }}
+                    onClick={() => {
+                      handleKanbanUpdateDuration(
+                        editingKanbanItem,
+                        editingKanbanDuration,
+                      );
+                      setEditingKanbanItem(null);
+                    }}
                     className="flex-1 py-3 rounded-xl bg-[#ff4c3e] text-white text-sm font-semibold hover:bg-[#f50c00] transition"
                   >
                     Salvar
@@ -2722,18 +2984,37 @@ export default function TodayPage() {
 
       {/* Modal — Adicionar tarefa */}
       {showAddTaskModal && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-end" onClick={() => setShowAddTaskModal(false)}>
-          <div className="bg-white rounded-t-2xl w-full max-w-lg mx-auto max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 bg-black/40 flex items-end"
+          onClick={() => setShowAddTaskModal(false)}
+        >
+          <div
+            className="bg-white rounded-t-2xl w-full max-w-lg mx-auto max-h-[80vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0">
-              <p className="text-sm font-bold text-gray-800">Adicionar tarefa</p>
-              <button onClick={() => setShowAddTaskModal(false)} className="text-gray-400"><MdClose size={20} /></button>
+              <p className="text-sm font-bold text-gray-800">
+                Adicionar tarefa
+              </p>
+              <button
+                onClick={() => setShowAddTaskModal(false)}
+                className="text-gray-400"
+              >
+                <MdClose size={20} />
+              </button>
             </div>
 
             {/* Tabs peça / exercício */}
             <div className="flex gap-1 px-5 pb-3 shrink-0">
               {(["pieces", "exercises"] as const).map((tab) => (
-                <button key={tab} onClick={() => { setAddTaskTab(tab); setAddTaskSelected(null); }}
-                  className={`flex-1 py-1.5 rounded-xl text-xs font-semibold transition ${addTaskTab === tab ? "bg-[#ff4c3e] text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
+                <button
+                  key={tab}
+                  onClick={() => {
+                    setAddTaskTab(tab);
+                    setAddTaskSelected(null);
+                  }}
+                  className={`flex-1 py-1.5 rounded-xl text-xs font-semibold transition ${addTaskTab === tab ? "bg-[#ff4c3e] text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
+                >
                   {tab === "pieces" ? "Peças" : "Exercícios"}
                 </button>
               ))}
@@ -2741,48 +3022,101 @@ export default function TodayPage() {
 
             {/* Lista */}
             <div className="overflow-y-auto flex-1 px-5 pb-3">
-              {(addTaskTab === "pieces" ? activePieces : activeExercises).length === 0 ? (
-                <p className="text-xs text-gray-400 text-center py-8">Nenhum item disponível.</p>
-              ) : addTaskTab === "pieces" ? activePieces.map((p) => (
-                <button key={p.id} onClick={() => setAddTaskSelected({ id: p.id, title: p.title, type: "piece" })}
-                  className={`w-full text-left px-3 py-2.5 rounded-xl transition mb-1 ${addTaskSelected?.id === p.id ? "bg-[#ff4c3e]/10 border border-[#ff4c3e]/30" : "hover:bg-[#f5f5f5]"}`}>
-                  <p className="text-sm font-medium text-gray-800">{p.title}</p>
-                  {p.composer && <p className="text-xs text-gray-400">{p.composer}</p>}
-                </button>
-              )) : activeExercises.map((ex) => (
-                <button key={ex.id} onClick={() => setAddTaskSelected({ id: ex.id, title: ex.title, type: "exercise" })}
-                  className={`w-full text-left px-3 py-2.5 rounded-xl transition mb-1 ${addTaskSelected?.id === ex.id ? "bg-[#ff4c3e]/10 border border-[#ff4c3e]/30" : "hover:bg-[#f5f5f5]"}`}>
-                  <p className="text-sm font-medium text-gray-800">{ex.title}</p>
-                  <p className="text-xs text-gray-400 capitalize">{ex.category}</p>
-                </button>
-              ))}
+              {(addTaskTab === "pieces" ? activePieces : activeExercises)
+                .length === 0 ? (
+                <p className="text-xs text-gray-400 text-center py-8">
+                  Nenhum item disponível.
+                </p>
+              ) : addTaskTab === "pieces" ? (
+                activePieces.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() =>
+                      setAddTaskSelected({
+                        id: p.id,
+                        title: p.title,
+                        type: "piece",
+                      })
+                    }
+                    className={`w-full text-left px-3 py-2.5 rounded-xl transition mb-1 ${addTaskSelected?.id === p.id ? "bg-[#ff4c3e]/10 border border-[#ff4c3e]/30" : "hover:bg-[#f5f5f5]"}`}
+                  >
+                    <p className="text-sm font-medium text-gray-800">
+                      {p.title}
+                    </p>
+                    {p.composer && (
+                      <p className="text-xs text-gray-400">{p.composer}</p>
+                    )}
+                  </button>
+                ))
+              ) : (
+                activeExercises.map((ex) => (
+                  <button
+                    key={ex.id}
+                    onClick={() =>
+                      setAddTaskSelected({
+                        id: ex.id,
+                        title: ex.title,
+                        type: "exercise",
+                      })
+                    }
+                    className={`w-full text-left px-3 py-2.5 rounded-xl transition mb-1 ${addTaskSelected?.id === ex.id ? "bg-[#ff4c3e]/10 border border-[#ff4c3e]/30" : "hover:bg-[#f5f5f5]"}`}
+                  >
+                    <p className="text-sm font-medium text-gray-800">
+                      {ex.title}
+                    </p>
+                    <p className="text-xs text-gray-400 capitalize">
+                      {ex.category}
+                    </p>
+                  </button>
+                ))
+              )}
             </div>
 
             {/* Configurações de duração e modo */}
             <div className="px-5 pt-3 pb-3 border-t border-gray-100 shrink-0 space-y-4">
               <div>
                 <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-2">
-                  Duração: <span className="text-[#ff4c3e]">{addTaskDuration} min</span>
+                  Duração:{" "}
+                  <span className="text-[#ff4c3e]">{addTaskDuration} min</span>
                 </label>
-                <input type="range" min={5} max={120} step={5} value={addTaskDuration}
+                <input
+                  type="range"
+                  min={5}
+                  max={120}
+                  step={5}
+                  value={addTaskDuration}
                   onChange={(e) => setAddTaskDuration(Number(e.target.value))}
-                  className="w-full accent-[#ff4c3e] h-2" />
+                  className="w-full accent-[#ff4c3e] h-2"
+                />
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-2">Tempo do dia</label>
+                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-2">
+                  Tempo do dia
+                </label>
                 <div className="flex gap-2">
-                  {([
-                    { value: "sum", label: "Somar ao dia" },
-                    { value: "redistribute", label: "Redistribuir" },
-                  ] as const).map((opt) => (
-                    <button key={opt.value} onClick={() => setAddTaskMode(opt.value)}
-                      className={`flex-1 py-2 rounded-xl text-xs font-semibold border transition ${addTaskMode === opt.value ? "bg-[#ff4c3e] text-white border-[#ff4c3e]" : "bg-white text-gray-600 border-gray-200 hover:border-[#ff4c3e]/40"}`}>
+                  {(
+                    [
+                      { value: "sum", label: "Somar ao dia" },
+                      { value: "redistribute", label: "Redistribuir" },
+                    ] as const
+                  ).map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setAddTaskMode(opt.value)}
+                      className={`flex-1 py-2 rounded-xl text-xs font-semibold border transition ${addTaskMode === opt.value ? "bg-[#ff4c3e] text-white border-[#ff4c3e]" : "bg-white text-gray-600 border-gray-200 hover:border-[#ff4c3e]/40"}`}
+                    >
                       {opt.label}
                     </button>
                   ))}
                 </div>
                 <p className="text-[10px] text-gray-400 mt-1.5">
-                  {addTaskMode === "sum" ? "Os " + addTaskDuration + " min são adicionados ao total do dia." : "Os " + addTaskDuration + " min são descontados das outras tarefas pendentes."}
+                  {addTaskMode === "sum"
+                    ? "Os " +
+                      addTaskDuration +
+                      " min são adicionados ao total do dia."
+                    : "Os " +
+                      addTaskDuration +
+                      " min são descontados das outras tarefas pendentes."}
                 </p>
               </div>
             </div>
@@ -2793,13 +3127,14 @@ export default function TodayPage() {
                 onClick={handleAddTask}
                 className="w-full py-3 rounded-xl bg-[#ff4c3e] text-white text-sm font-semibold hover:bg-[#f50c00] transition disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                {addTaskSelected ? `Adicionar "${addTaskSelected.title}"` : "Selecione uma tarefa"}
+                {addTaskSelected
+                  ? `Adicionar "${addTaskSelected.title}"`
+                  : "Selecione uma tarefa"}
               </button>
             </div>
           </div>
         </div>
       )}
-
     </StudentLayout>
   );
 }
