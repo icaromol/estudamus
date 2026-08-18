@@ -9,14 +9,22 @@ Plataforma web responsiva de gestão pedagógica musical. Dois perfis:
 ## Stack
 
 ```
-React 18 + Vite + TypeScript
+React 19 + Vite + TypeScript
 Tailwind CSS v4
-shadcn/ui (preset: radix-nova)
-Supabase (Auth + PostgreSQL + RLS)
-react-router-dom v6
+shadcn/ui (preset: radix-nova, primitivas Radix UI)
+Supabase (Auth incl. Google OAuth + PostgreSQL + RLS + Storage)
+react-router-dom v7
 sonner (toasts)
 boring-avatars (beam=aluno, marble=peça, pixel=exercício)
+@dnd-kit (drag & drop)
+recharts (gráficos, StatsPage)
+motion (animações)
+nextstepjs (onboarding guiado)
+canvas-confetti (reforço positivo de gamificação)
+Sentry + Microsoft Clarity + Google Analytics (observabilidade)
 ```
+
+Detalhes de arquitetura, algoritmo de planejamento e sistema de gamificação: `docs/architecture.md`.
 
 ## Ícones
 
@@ -30,18 +38,24 @@ boring-avatars (beam=aluno, marble=peça, pixel=exercício)
 
 ## Design System
 
-Paleta fixa — não usar outras cores além dessas:
+Paleta fixa, centralizada em `src/lib/colors.ts` (`COLORS`/`PALETTE`) — não usar outras cores além dessas. Detalhamento completo por página em `docs/design-color-plan.md`.
 
-| Papel | Hex |
-|---|---|
-| Primária (botões, títulos, destaques) | `#1E3A5F` |
-| Secundária (links, elementos ativos) | `#4A90C4` |
-| Background de seções | `#D6E4F0` |
-| Fundo de cards | `#F5F7FA` |
+| Papel | Nome | Hex |
+|---|---|---|
+| Vermelho principal (design, não destrutivo) | Tomato | `#ff4c3e` |
+| Azul escuro principal | Yale Blue | `#153b50` |
+| Azul claro / destaque | Frosted Blue | `#b2f0fb` |
+| Fundo suave do tomato | Lavender Blush | `#ffeceb` |
+| Fundo suave do azul | Alice Blue | `#eff7fb` |
+| Fundo suave do ciano | Azure Mist | `#ecfbfe` |
+| Fundo neutro de página | White Smoke | `#f5f5f5` |
+| Destaque extremo | Pure Red | `#f50c00` |
+| Azul médio | Cerulean | `#297aa3` |
+| Ciano saturado | Pacific Cyan | `#0993ae` |
+| Texto escuro, ícones | Graphite | `#292929` |
 
 Arredondamento padrão: `rounded-2xl` em cards, `rounded-xl` em itens internos.
-Fonte de destaque: bold azul `#1E3A5F`. Labels secundários: `text-xs text-gray-400`.
-`AVATAR_COLORS = ['#1E3A5F','#4A90C4','#D6E4F0','#F5F7FA','#FFFFFF']`
+`AVATAR_COLORS = [Yale Blue, Tomato, Frosted Blue]` (`src/lib/colors.ts`).
 
 ## Estrutura de Pastas
 
@@ -50,29 +64,53 @@ src/
   components/
     auth/AuthGuard.tsx          → protege rotas por role
     layout/TeacherLayout.tsx    → header + nav professor
-    layout/StudentLayout.tsx    → header + bottom nav aluno (3 abas: Hoje/Repertório/Histórico)
-    ui/button.tsx               → shadcn button
-  hooks/useAuth.ts              → { user, profile, loading, signOut }
+    layout/StudentLayout.tsx    → header + bottom nav aluno
+    onboarding/                 → OnboardingController, OnboardingTourProvider, WelcomeModal,
+                                   AvailabilitySetupModal, PiecesSetupModal, OnboardingCard
+    checklist/
+    student/                    → modais: FocusModal, MoveTaskModal, ChangeTimeModal,
+                                   EditDurationModal, ContinuityCard
+    teacher/                    → StudentJornadaTab
+    ui/                         → primitivas shadcn + PillSlider, ProportionalSliderGroup,
+                                   EmptyState, Spinner, confetti.tsx, chart.tsx
+  hooks/
+    useAuth.tsx                 → { user, profile, loading, signOut }, integra Clarity
+    useOnboarding.ts
+    useStudentProgress.ts       → progresso/XP do aluno
+    useTeacherProgress.ts       → progresso/XP do professor
+    useProportionalSliders.ts
   lib/
     supabase.ts                 → cliente Supabase
+    instrument.ts                → init Sentry (em src/, não src/lib/)
     defaultChecklist.ts         → checklist padrão de peças (15 itens)
     weekUtils.ts                → getMonday, formatWeekStart, addWeeks, formatWeekLabel,
                                    getDayLabel, getDayFullLabel, getTodayDayOfWeek, getDayDate
-    planGenerator.ts            → algoritmo de geração de planejamento (puro, sem Supabase)
+    planGenerator.ts, autoplan.ts → algoritmo de geração de planejamento
+    xpHelpers.ts                → XP do aluno, RANKS, XP_AMOUNTS, ACHIEVEMENT_KEYS
+    teacherXpHelpers.ts         → XP do professor
+    colors.ts                   → paleta centralizada (COLORS, PALETTE, AVATAR_COLORS)
+    confettiEffects.ts, soundEffects.ts
+    onboardingTours.ts
+    programTypes.tsx
   pages/
-    auth/LoginPage, RegisterPage
+    LandingPage.tsx, NotFoundPage.tsx
+    auth/LoginPage, RegisterPage, AuthCallbackPage, ModeSelectPage
     teacher/StudentsPage, NewStudentPage, StudentProfilePage, EditStudentPage
     teacher/NewPiecePage, PieceDetailPage, EditPiecePage
     teacher/NewExercisePage, ExerciseDetailPage, EditExercisePage
     teacher/NewProgramaPage, ProgramaDetailPage, EditProgramaPage
-    teacher/PlanejamentoPage
+    teacher/PlanejamentoPage, TeacherJourneyPage
     student/TodayPage, PomodoroPage, RepertoirePage, HistoryPage
-    NotFoundPage
+    student/JourneyPage, StatsPage, MyTeacherPage, ObjetivosPage, StudentPendingPage
+    student/New{Piece,Exercise,Programa}Page, Edit{Piece,Exercise,Programa}Page, {Piece,Exercise,Programa}DetailPage
+  mocks/next-navigation.ts      → shim de next/navigation p/ satisfazer peer dep do nextstepjs (não é app Next.js)
   types/
     plan.ts      → PlanItem (com checklist_item_id, program_id, is_maintenance), WeeklyPlan
     programs.ts  → Programa, ProgramaType, ProgramaStatus, ProgramPiece, ProgramExercise
   router.tsx
 ```
+
+Nota: `NewGoalPage.tsx`/`EditGoalPage.tsx` (teacher) existem no diretório mas são órfãos — não referenciados no router.
 
 ## Banco de Dados — Tabelas Principais
 
@@ -104,10 +142,14 @@ comments          → linha do tempo por peça/exercício/sessão (não implemen
 ## Rotas
 
 ```
-/login, /cadastro(?invite=STUDENT_ID)
+/                                → LandingPage (pública)
+/login, /cadastro(?invite=STUDENT_ID), /auth/callback
+/modo                            → ModeSelectPage (autenticado)
 /* → NotFoundPage (404)
 
 Professor:
+/professor                                             → redirect /professor/jornada
+/professor/jornada                                     → TeacherJourneyPage (XP/leaderboard)
 /professor/alunos
 /professor/alunos/novo
 /professor/alunos/:studentId                          (tabs: Peças | Exercícios | Programas)
@@ -124,10 +166,16 @@ Professor:
 /professor/alunos/:studentId/planejamento
 
 Aluno:
-/aluno/hoje
+/aluno/pendente                  → StudentPendingPage (perfil sem teacher_id vinculado)
+/aluno, /aluno/hoje               → redirect /aluno/planejamento
+/aluno/planejamento               → TodayPage (renomeada de "Hoje")
 /aluno/pomodoro
-/aluno/repertorio
+/aluno/repertorio (+ pecas/exercicios/programas: novo|:id|:id/editar)
+/aluno/objetivos                  → ObjetivosPage
 /aluno/historico
+/aluno/jornada                    → JourneyPage (XP/leaderboard)
+/aluno/estatisticas                → StatsPage
+/aluno/professor                   → MyTeacherPage
 ```
 
 ## Padrões de Código
@@ -239,6 +287,20 @@ A FK de plan_items para weekly_plans se chama `plan_id` (não `weekly_plan_id`).
 - Destaque "Esta semana" com total de minutos
 - Por sessão: data, ciclo, duração, badge de dificuldade, itens trabalhados, notas
 
+**Gamificação** (`xpHelpers.ts`/`teacherXpHelpers.ts`, ver `docs/architecture.md`)
+- XP por atributo musical (9 atributos), concedido em eventos discretos (pomodoro, checklist, peça/programa concluído, missões diárias/semanais)
+- 22 ranks em 6 regiões (Aprendiz IV → Mestre)
+- Aba "Jornada" com leaderboard, para aluno (`JourneyPage`) e professor (`TeacherJourneyPage`)
+- `StatsPage` (aluno) com gráficos (recharts)
+- Confete (`canvas-confetti`) como reforço positivo
+
+**Onboarding**
+- Tour guiado (`nextstepjs`) para configurar disponibilidade semanal e repertório inicial na primeira entrada
+- `WelcomeModal`, `AvailabilitySetupModal`, `PiecesSetupModal`
+
+**Landing page pública**
+- `/` renderiza `LandingPage` (não redireciona direto por role) com apresentação do produto
+
 ## O que falta ❌
 
 **Limpeza de código**
@@ -256,13 +318,16 @@ A FK de plan_items para weekly_plans se chama `plan_id` (não `weekly_plan_id`).
 
 ## Variáveis de Ambiente
 
+Ver `.env.example` na raiz. Resumo:
+
 ```
 VITE_SUPABASE_URL
 VITE_SUPABASE_ANON_KEY
+VITE_SENTRY_DSN
 ```
 
 ## Links
 
-- GitHub: https://github.com/icaromol/Entre-Aulas-App
+- GitHub: https://github.com/icaromol/estudamus
 - Supabase: https://supabase.com/dashboard/project/gdyvazyqisigvbhnsxui
-- Deploy: https://entre-aulas-app.vercel.app (ou URL configurada no Vercel)
+- Deploy: https://estudamus.vercel.app
